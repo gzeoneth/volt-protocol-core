@@ -3,6 +3,7 @@ import l2config from './l2config';
 import { getAllContractAddresses } from '@scripts/utils/loadContracts';
 import { ethers } from 'hardhat';
 import '@nomiclabs/hardhat-ethers';
+import { BigNumber } from 'ethers';
 
 const {
   /// fees
@@ -44,27 +45,29 @@ async function deploy() {
   const addresses = await getAllContractAddresses();
 
   const CoreFactory = await ethers.getContractFactory('L2Core');
-  const core = await CoreFactory.deploy(addresses.arbitrumVolt); /// point to bridge token as Volt
+  // const core = await CoreFactory.deploy(addresses.arbitrumVolt); /// point to bridge token as Volt
+  const core = CoreFactory.attach('0x31A38B79fDcFBC3095E3268CAFac1b9791796736');
   await core.deployed();
 
   const volt = await core.volt();
 
-  const L2ScalingPriceOracleFactory = await ethers.getContractFactory('L2ScalingPriceOracle');
+  // const L2ScalingPriceOracleFactory = await ethers.getContractFactory('L2ScalingPriceOracle');
   const OraclePassThroughFactory = await ethers.getContractFactory('OraclePassThrough');
 
-  const scalingPriceOracle = await L2ScalingPriceOracleFactory.deploy(
-    addresses.arbitrumFiewsChainlinkOracle,
-    /// if the variables aren't reusable or needed for documentation, they shouldn't be in Config.ts
-    L2_ARBITRUM_JOB_ID,
-    L2_ARBITRUM_CHAINLINK_FEE,
-    L2_ARBITRUM_CURRENT_MONTH,
-    L2_ARBITRUM_PREVIOUS_MONTH,
-    ACTUAL_START_TIME,
-    STARTING_L2_ORACLE_PRICE
-  );
-  await scalingPriceOracle.deployed();
+  // const scalingPriceOracle = await L2ScalingPriceOracleFactory.deploy(
+  //   addresses.arbitrumFiewsChainlinkOracle,
+  //   /// if the variables aren't reusable or needed for documentation, they shouldn't be in Config.ts
+  //   L2_ARBITRUM_JOB_ID,
+  //   L2_ARBITRUM_CHAINLINK_FEE,
+  //   L2_ARBITRUM_CURRENT_MONTH,
+  //   L2_ARBITRUM_PREVIOUS_MONTH,
+  //   ACTUAL_START_TIME,
+  //   STARTING_L2_ORACLE_PRICE
+  // );
+  // await scalingPriceOracle.deployed();
 
-  const oraclePassThrough = await OraclePassThroughFactory.deploy(scalingPriceOracle.address);
+  // const oraclePassThrough = await OraclePassThroughFactory.deploy(scalingPriceOracle.address);
+  const oraclePassThrough = OraclePassThroughFactory.attach('0x7A23eB9bf043471dE7422a9CcdB5Ef809F34CbdE');
   await oraclePassThrough.deployed();
 
   const voltPSMFactory = await ethers.getContractFactory('PriceBoundPSM');
@@ -89,7 +92,8 @@ async function deploy() {
     mintLimitPerSecond,
     voltPSMBufferCap,
     addresses.arbitrumDai,
-    ADDRESS_ONE /// intentionally set the PCV deposit as an address that does not exist on l2, address(1)
+    addresses.voltFusePCVDeposit, /// intentionally set the PCV deposit as an address that does not exist on l2, address(1)
+    { gasLimit: BigNumber.from(100000000) }
     /// any calls to try to allocate surplus will fail, however the reserves threshold is max uint
     /// so this call will never be be able to be attempted in the first place
   );
@@ -116,7 +120,8 @@ async function deploy() {
     mintLimitPerSecond,
     voltPSMBufferCap,
     addresses.arbitrumUsdc,
-    ADDRESS_ONE /// intentionally set the PCV deposit as an address that does not exist on l2, address(1)
+    addresses.voltFusePCVDeposit, /// intentionally set the PCV deposit as an address that does not exist on l2, address(1)
+    { gasLimit: BigNumber.from(100000000) }
     /// any calls to try to allocate surplus will fail, however the reserves threshold is max uint
     /// so this call will never be be able to be attempted in the first place
   );
@@ -155,7 +160,7 @@ async function deploy() {
   console.log(`⚡VOLT USDC PSM⚡:        ${voltUSDCPSM.address}`);
   console.log(`⚡PCVGuardAdmin⚡:        ${pcvGuardAdmin.address}`);
   console.log(`⚡OraclePassThrough⚡:    ${oraclePassThrough.address}`);
-  console.log(`⚡L2ScalingPriceOracle⚡: ${scalingPriceOracle.address}`);
+  // console.log(`⚡L2ScalingPriceOracle⚡: ${scalingPriceOracle.address}`);
 
   console.log('\n ~~~~~ Deployed Contracts Successfully ~~~~~ \n');
 }
